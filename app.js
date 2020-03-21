@@ -8,6 +8,8 @@ const passportLocalMongoose = require("passport-local-mongoose");
 const expressSession = require("express-session");
 const User = require("./models/User");
 
+const PORT = process.env.PORT | 6969;
+
 mongoose.connect("mongodb://localhost/passport-auth", { useNewUrlParser: true, useUnifiedTopology: true });
 
 app.set("view engine", "ejs");
@@ -24,11 +26,19 @@ passport.use(new localStrategy(User.authenticate()));
 passport.serializeUser(User.serializeUser());
 passport.deserializeUser(User.deserializeUser());
 
+const isLoggedIn = (req, res, next) => {
+    if(req.isAuthenticated()) {
+        return next();
+    }
+
+    res.redirect("/login");
+};
+
 app.get("/", (req, res) => {
     res.render("home");
 })
 
-app.get("/secret", (req, res) => {
+app.get("/secret", isLoggedIn, (req, res) => {
     res.render("secret");
 })
 
@@ -60,7 +70,10 @@ app.post("/login", passport.authenticate("local", {
 
 });
 
-const PORT = process.env.PORT | 6969;
+app.get("/logout", (req, res) => {
+    req.logOut();
+    res.redirect("/");
+});
 
 app.listen(PORT, () => {
     console.log(`App running at http://localhost:${PORT}/`);
